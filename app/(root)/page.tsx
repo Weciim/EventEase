@@ -4,6 +4,9 @@ import Search from "@/components/shared/Search";
 import { Button } from "@/components/ui/button";
 import { getAllEvents } from "@/lib/actions/event.actions";
 import { Calendar, Gift, Music, Utensils } from "lucide-react";
+import { CldImage } from "next-cloudinary";
+// import "./styles2.css";
+import BitFtour from "@/components/shared/BitFtour";
 import {
   Card,
   CardContent,
@@ -15,6 +18,7 @@ import {
 import { SearchParamProps } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
+import Slider from "@/components/shared/slider";
 const eventPacks = [
   {
     title: "Wedding Bliss",
@@ -64,7 +68,7 @@ export default async function Home({ searchParams }: SearchParamProps) {
 
   return (
     <>
-      <section className=" bg-dotted-pattern bg-contain py-5 md:py-10">
+      {/* <section className=" bg-dotted-pattern bg-contain py-5 md:py-10">
         <div className="wrapper grid grid-cols-1 gap-5 md:grid-cols-2 2xl:gap-0">
           <div className="flex flex-col justify-center gap-8">
             <h1 className="h1-bold">
@@ -80,11 +84,85 @@ export default async function Home({ searchParams }: SearchParamProps) {
 
           <video src="/assets/images/hero-video.mp4" autoPlay loop />
         </div>
+      </section> */}
+      <section id="banner">
+        <a></a>
+        <div className="wrapper">
+          <div className="banner-content">
+            <span className="subtitle">EventEase</span>
+            <h2>
+              Host, Connect, Celebrate<br></br> Your Events, Our Platform!
+            </h2>
+            <p>We brought for you everything to host an amazing event.</p>
+          </div>
+        </div>
       </section>
+      <section className="featured-articles-section">
+        <div className="wrapper">
+          <h3 className="text-3xl font-extrabold">Who are we ?</h3>
+          <div className="cards-container">
+            <div
+              className="article-card card-large"
+              style={{
+                backgroundImage: `url("/assets/images/TSH_139_original.jpg")`,
+              }}
+            >
+              <div className="article-card-content">
+                <h4 className="font-bold sec-title">EventEase</h4>
+                <p className="text-[#000] font-semibold">
+                  We are an events furnitures platform that connects providers
+                  to clients with an easy click .
+                </p>
+              </div>
+            </div>
+            <div
+              className="article-card card-small"
+              style={{
+                backgroundImage: `url("/assets/images/bridge.jpg")`,
+              }}
+            >
+              <div className="article-card-content">
+                <h4 className="sec-title">Indoor</h4>
+              </div>
+            </div>
+            <div
+              className="article-card article-card-alt card-small"
+              style={{
+                backgroundImage: `url("/assets/images/cosy.jpg")`,
+              }}
+            >
+              <div className="article-card-content">
+                <h4 className="sec-title">Cosy</h4>
+              </div>
+            </div>
 
+            <div
+              className="article-card card-medium"
+              style={{
+                backgroundImage: `url("/assets/images/hero.png")`,
+              }}
+            >
+              <div className="article-card-content">
+                <h4 className="sec-title">Outdoor</h4>
+              </div>
+            </div>
+            <div
+              className="article-card article-card-alt card-medium"
+              style={{
+                backgroundImage: `url("/assets/images/TSH_075_original.jpg")`,
+              }}
+            >
+              <div className="article-card-content">
+                <h4 className="sec-title">Traditional</h4>
+              </div>
+            </div>
+            <br className="clear" />
+          </div>
+        </div>
+      </section>
       <section
         id="events"
-        className="wrapper my-8 flex flex-col gap-8 md:gap-12"
+        className="wrapper my-8 flex flex-col gap-8 md:gap-12 mt-28"
       >
         <h2 className="h2-bold">
           Trust by <br /> Thousands of Events
@@ -95,46 +173,70 @@ export default async function Home({ searchParams }: SearchParamProps) {
           <CategoryFilter />
         </div>
 
-        <Collection
-          data={events?.data}
-          emptyTitle="No Events Found"
-          emptyStateSubtext="Come back later"
-          collectionType="All_Events"
-          limit={6}
-          page={page}
-          totalPages={events?.totalPages}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div>
+            <Card className={`h-full transition-shadow duration-300`}>
+              <CardHeader className="bg-gray-100 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl font-bold">
+                    Wedding Bliss
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {true && (
+                  <Image
+                    src={
+                      "https://res.cloudinary.com/dqpvunhhn/image/upload/v1732572979/lxuehwhmhmx4086cfl7r.jpg"
+                    }
+                    alt={"Wedding Bliss"}
+                    width="500"
+                    height="500"
+                    crop={{
+                      type: "auto",
+                      source: true,
+                    }}
+                    className="w-full h-48 object-cover rounded-lg mb-4"
+                  />
+                )}
+                <CardDescription className="text-base mb-2">
+                  {"An amazing pack including all necessities for your best day ." ||
+                    "No description available."}
+                </CardDescription>
+                {true && (
+                  <p className="text-lg font-semibold text-blue-500">4200$</p>
+                )}
+              </CardContent>
+              <CardFooter>
+                {/* <Link>
+                  <Button className="w-full">View Details</Button>
+                </Link> */}
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </section>
+      <section
+        className="full-width-section mt-20"
+        style={{
+          backgroundImage: `url("/assets/images/full-width-bg.jpg")`,
+        }}
+      >
+        <div className="wrapper">
+          <div className="text align-left">
+            <h2 className="text-4xl font-bold">Have A 3D Experience</h2>
+            <p>
+              Try to explore yourself some products with an immersive experience
+              using our 3d models .
+            </p>
+            <a href="/showroom" className="button-1">
+              Visit page
+            </a>
+          </div>
+          <div className="clear"></div>
+        </div>
       </section>
       <div className="container mx-auto px-4 py-8">
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Event Packs</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {eventPacks.map((pack, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {pack.icon}
-                    {pack.title}
-                  </CardTitle>
-                  <CardDescription>{pack.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Image
-                    src={pack.image}
-                    alt={pack.title}
-                    width={200}
-                    height={100}
-                    className="w-full h-auto object-cover rounded-md"
-                  />
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full">View Details</Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </section>
-
         <section className="mb-44">
           <h2 className="text-3xl font-bold mb-6">Must-Have Event Furniture</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

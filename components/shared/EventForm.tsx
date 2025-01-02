@@ -1,371 +1,358 @@
 "use client";
+async function uploadImageToCloudinary(file: File) {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "furnitures");
 
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${"dqpvunhhn"}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+    return data.secure_url;
+  } catch (error) {
+    console.error("Error uploading image to Cloudinary:", error);
+    throw error;
+  }
+}
+
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { createFurniture } from "@/lib/actions/furniture.action";
+
+// UI Components
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { eventFormSchema } from "@/lib/validator";
-import * as z from "zod";
-import { eventDefaultValues } from "@/constants";
-import Dropdown from "./Dropdown";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUploader } from "./FileUploader";
-import { useState } from "react";
-import Image from "next/image";
-import DatePicker from "react-datepicker";
-import { useUploadThing } from "@/lib/uploadthing";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-import "react-datepicker/dist/react-datepicker.css";
-import { Checkbox } from "../ui/checkbox";
-import { useRouter } from "next/navigation";
-import { createEvent, updateEvent } from "@/lib/actions/event.actions";
-import { IEvent } from "@/lib/database/models/event.model";
+// Create the furniture form schema
+const furnitureFormSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  imageUrl: z.string().min(1, "Image is required"),
+  price: z.number().min(0, "Price must be 0 or greater"),
+  availableQuantity: z.number().min(0, "Quantity must be 0 or greater"),
+  categoryId: z.string().min(1, "Category is required"),
+});
 
-type EventFormProps = {
-  userId: string;
-  type: "Create" | "Update";
-  event?: IEvent;
-  eventId?: string;
+// Default values for the form
+const defaultValues = {
+  name: "",
+  description: "",
+  location: "",
+  imageUrl: "",
+  price: 0,
+  availableQuantity: 0,
+  categoryId: "",
 };
 
-const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
-  const [files, setFiles] = useState<File[]>([]);
-  const initialValues =
-    event && type === "Update"
-      ? {
-          ...event,
-          startDateTime: new Date(event.startDateTime),
-          endDateTime: new Date(event.endDateTime),
-        }
-      : eventDefaultValues;
+const categories = [
+  { id: "Wedding", name: "Wedding" },
+  { id: "Birthday", name: "Birthday" },
+  { id: "Party", name: "Party" },
+  { id: "Formal", name: "Formal" },
+];
+
+const FurnitureForm = ({ userId }: { userId: string }) => {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState("Error!");
   const router = useRouter();
 
-  const { startUpload } = useUploadThing("imageUploader");
-
-  const form = useForm<z.infer<typeof eventFormSchema>>({
-    resolver: zodResolver(eventFormSchema),
-    defaultValues: initialValues,
+  const form = useForm<z.infer<typeof furnitureFormSchema>>({
+    resolver: zodResolver(furnitureFormSchema),
+    defaultValues,
   });
 
-  async function onSubmit(values: z.infer<typeof eventFormSchema>) {
-    let uploadedImageUrl = values.imageUrl;
-
-    if (files.length > 0) {
-      const uploadedImages = await startUpload(files);
-
-      if (!uploadedImages) {
-        return;
-      }
-
-      uploadedImageUrl = uploadedImages[0].url;
+  // Handle image file selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const fileUrl = URL.createObjectURL(file);
+      setPreviewUrl(fileUrl);
+      form.setValue("imageUrl", fileUrl);
     }
+  };
 
-    if (type === "Create") {
-      try {
-        const newEvent = await createEvent({
-          event: { ...values, imageUrl: uploadedImageUrl },
-          userId,
-          path: "/profile",
-        });
+  async function onSubmit(values: z.infer<typeof furnitureFormSchema>) {
+    try {
+      setIsUploading(true);
+      setError("");
 
-        if (newEvent) {
-          form.reset();
-          router.push(`/events/${newEvent._id}`);
+      let imageUrl = values.imageUrl;
+
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        formData.append(
+          "upload_preset",
+          process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ""
+        );
+
+        try {
+          const uploadResponse = await fetch(
+            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (!uploadResponse.ok) {
+            throw new Error("Failed to upload image to Cloudinary");
+          }
+
+          const uploadData = await uploadResponse.json();
+          if (!uploadData?.secure_url) {
+            throw new Error("No image URL received from Cloudinary");
+          }
+
+          imageUrl = uploadData.secure_url;
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          throw new Error("Failed to upload image. Please try again.");
         }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-
-    if (type === "Update") {
-      if (!eventId) {
-        router.back();
-        return;
       }
 
-      try {
-        const updatedEvent = await updateEvent({
-          userId,
-          event: { ...values, imageUrl: uploadedImageUrl, _id: eventId },
-          path: `/events/${eventId}`,
-        });
+      const furnitureData = {
+        name: values.name,
+        description: values.description || "",
+        location: values.location || "",
+        imageUrl: imageUrl,
+        price: values.price,
+        isFree: values.price === 0,
+        categories: [values.categoryId],
+        availableQuantity: values.availableQuantity,
+        availabilityDate: new Date(),
+      };
 
-        if (updatedEvent) {
-          form.reset();
-          router.push(`/events/${updatedEvent._id}`);
-        }
-      } catch (error) {
-        console.log(error);
+      const result = await createFurniture({
+        furniture: furnitureData,
+        userId,
+      });
+
+      if (!result) {
+        throw new Error("Failed to create furniture. Please try again.");
       }
+
+      // Success! Reset form and redirect
+      form.reset();
+      setPreviewUrl("");
+      setImageFile(null);
+      router.push("/furnitures");
+      router.refresh();
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      setError(
+        error instanceof Error ? error.message : "An unexpected error occurred"
+      );
+    } finally {
+      setIsUploading(false);
     }
   }
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-5"
-      >
-        <div className="flex flex-col gap-5 md:flex-row">
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded-lg">
+      <h1 className="text-2xl font-bold mb-6">Create New Furniture</h1>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
-            name="title"
+            name="name"
             render={({ field }) => (
-              <FormItem className="w-full">
+              <FormItem>
+                <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Furniture name"
-                    {...field}
-                    className="input-field"
-                  />
+                  <Input placeholder="Furniture name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="categoryId"
             render={({ field }) => (
-              <FormItem className="w-full">
-                <FormControl>
-                  <Dropdown
-                    onChangeHandler={field.onChange}
-                    value={field.value}
-                  />
-                </FormControl>
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
 
-        <div className="flex flex-col gap-5 md:flex-row">
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem className="w-full">
-                <FormControl className="h-72">
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
                   <Textarea
                     placeholder="Description"
+                    className="h-32"
                     {...field}
-                    className="textarea rounded-2xl"
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormControl className="h-72">
-                  <FileUploader
-                    onFieldChange={field.onChange}
-                    imageUrl={field.value}
-                    setFiles={setFiles}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
 
-        <div className="flex flex-col gap-5 md:flex-row">
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormControl>
-                  <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2">
-                    <Image
-                      src="/assets/icons/location-grey.svg"
-                      alt="calendar"
-                      width={24}
-                      height={24}
-                    />
-
-                    <Input
-                      placeholder="Furniture location"
-                      {...field}
-                      className="input-field"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* <div className="flex flex-col gap-5 md:flex-row">
-          <FormField
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
               control={form.control}
-              name="startDateTime"
+              name="price"
               render={({ field }) => (
-                <FormItem className="w-full">
+                <FormItem>
+                  <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2">
-                      <Image
-                        src="/assets/icons/calendar.svg"
-                        alt="calendar"
-                        width={24}
-                        height={24}
-                        className="filter-grey"
-                      />
-                      <p className="ml-3 whitespace-nowrap text-grey-600">Start Date:</p>
-                      <DatePicker 
-                        selected={field.value} 
-                        onChange={(date: Date) => field.onChange(date)} 
-                        showTimeSelect
-                        timeInputLabel="Time:"
-                        dateFormat="MM/dd/yyyy h:mm aa"
-                        wrapperClassName="datePicker"
-                      />
-                    </div>
-
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        
-          <FormField
-              control={form.control}
-              name="endDateTime"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormControl>
-                    <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2">
-                      <Image
-                        src="/assets/icons/calendar.svg"
-                        alt="calendar"
-                        width={24}
-                        height={24}
-                        className="filter-grey"
-                      />
-                      <p className="ml-3 whitespace-nowrap text-grey-600">End Date:</p>
-                      <DatePicker 
-                        selected={field.value} 
-                        onChange={(date: Date) => field.onChange(date)} 
-                        showTimeSelect
-                        timeInputLabel="Time:"
-                        dateFormat="MM/dd/yyyy h:mm aa"
-                        wrapperClassName="datePicker"
-                      />
-                    </div>
-
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-        </div> */}
-
-        <div className="flex flex-col gap-5 md:flex-row">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormControl>
-                  <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2">
-                    <Image
-                      src="/assets/icons/dollar.svg"
-                      alt="dollar"
-                      width={24}
-                      height={24}
-                      className="filter-grey"
-                    />
                     <Input
                       type="number"
                       placeholder="Price"
                       {...field}
-                      className="p-regular-16 border-0 bg-grey-50 outline-offset-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
-                    <FormField
-                      control={form.control}
-                      name="isFree"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="flex items-center">
-                              <label
-                                htmlFor="isFree"
-                                className="whitespace-nowrap pr-3 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                Free Shipping
-                              </label>
-                              <Checkbox
-                                onCheckedChange={field.onChange}
-                                checked={field.value}
-                                id="isFree"
-                                className="mr-2 h-5 w-5 border-2 border-primary-500"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="availableQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Available Quantity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Available Quantity"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
-            name="url"
+            name="location"
             render={({ field }) => (
-              <FormItem className="w-full">
+              <FormItem>
+                <FormLabel>Location</FormLabel>
                 <FormControl>
-                  <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2">
+                  <div className="flex items-center gap-4">
                     <Image
-                      src="/assets/icons/link.svg"
-                      alt="link"
+                      src="/assets/icons/location-grey.svg"
+                      alt="location"
                       width={24}
                       height={24}
                     />
-
-                    <Input
-                      placeholder="URL"
-                      {...field}
-                      className="input-field"
-                    />
+                    <Input placeholder="Furniture location" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          disabled={form.formState.isSubmitting}
-          className="button col-span-2 w-full"
-        >
-          {form.formState.isSubmitting ? "Submitting..." : `${type} furniture `}
-        </Button>
-      </form>
-    </Form>
+          <FormField
+            control={form.control}
+            name="imageUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Image</FormLabel>
+                <FormControl>
+                  <div className="flex flex-col items-center gap-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {previewUrl && (
+                      <div className="relative w-full h-48">
+                        <Image
+                          src={previewUrl}
+                          alt="Preview"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={isUploading || form.formState.isSubmitting}
+          >
+            {isUploading
+              ? "Uploading..."
+              : form.formState.isSubmitting
+              ? "Creating..."
+              : "Create Furniture"}
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 };
 
-export default EventForm;
+export default FurnitureForm;

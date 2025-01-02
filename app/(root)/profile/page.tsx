@@ -1,74 +1,65 @@
-import Collection from "@/components/shared/Collection";
-import { Button } from "@/components/ui/button";
-import { getEventsByUser } from "@/lib/actions/event.actions";
-import { getOrdersByUser } from "@/lib/actions/order.actions";
-import { IOrder } from "@/lib/database/models/order.model";
-import { SearchParamProps } from "@/types";
 import { auth } from "@clerk/nextjs";
+import { getOrderByUser } from "@/lib/actions/order.actions";
+import { getFurnituresByUser } from "@/lib/actions/furniture.action";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import React from "react";
+import { FurnitureItem } from "@/components/shared/FurnitureItem";
+import { OrderAccordion } from "@/components/shared/OrderAccordion";
 
-const ProfilePage = async ({ searchParams }: SearchParamProps) => {
-  const { sessionClaims } = auth();
-  const userId = sessionClaims?.userId as string;
+export default async function DashboardPage() {
+  const { userId } = auth();
 
-  const ordersPage = Number(searchParams?.ordersPage) || 1;
-  const eventsPage = Number(searchParams?.eventsPage) || 1;
+  if (!userId) {
+    return <div>Please log in to view your dashboard.</div>;
+  }
 
-  const orders = await getOrdersByUser({ userId, page: ordersPage });
-
-  const orderedEvents = orders?.data.map((order: IOrder) => order.event) || [];
-  const organizedEvents = await getEventsByUser({ userId, page: eventsPage });
+  const orders = await getOrderByUser({ userId, page: 1 });
+  const furnitures = await getFurnituresByUser(userId);
 
   return (
-    <>
-      {/* My Tickets */}
-      <section className="bg-primary-50 bg-dotted-pattern bg-cover bg-center py-5 md:py-10">
-        <div className="wrapper flex items-center justify-center sm:justify-between">
-          <h3 className="h3-bold text-center sm:text-left">My Tickets</h3>
-          <Button asChild size="lg" className="button hidden sm:flex">
-            <Link href="/#events">Explore More Furnitures</Link>
-          </Button>
-        </div>
-      </section>
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
 
-      <section className="wrapper my-8">
-        <Collection
-          data={orderedEvents}
-          emptyTitle="No furniture tickets purchased yet"
-          emptyStateSubtext="No worries - plenty of amazing furnitures to explore!"
-          collectionType="My_Tickets"
-          limit={3}
-          page={ordersPage}
-          urlParamName="ordersPage"
-          totalPages={orders?.totalPages}
-        />
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl">Your Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {orders && orders.data.length > 0 ? (
+              <OrderAccordion orders={orders.data} />
+            ) : (
+              <p className="text-gray-500">No orders found.</p>
+            )}
+            {orders && orders.totalPages > 1 && (
+              <Button asChild className="mt-4">
+                <Link href="/orders">View All Orders</Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Events Organized */}
-      <section className="bg-primary-50 bg-dotted-pattern bg-cover bg-center py-5 md:py-10">
-        <div className="wrapper flex items-center justify-center sm:justify-between">
-          <h3 className="h3-bold text-center sm:text-left">Furnitures Added</h3>
-          <Button asChild size="lg" className="button hidden sm:flex">
-            <Link href="/events/create">Create New Furniture</Link>
-          </Button>
-        </div>
-      </section>
-
-      <section className="wrapper my-8">
-        <Collection
-          data={organizedEvents?.data}
-          emptyTitle="No furnitures have been created yet"
-          emptyStateSubtext="Go create some now"
-          collectionType="Events_Organized"
-          limit={3}
-          page={eventsPage}
-          urlParamName="eventsPage"
-          totalPages={organizedEvents?.totalPages}
-        />
-      </section>
-    </>
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl">Your Furnitures</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {furnitures && furnitures.length > 0 ? (
+              <div className="space-y-4">
+                {furnitures.map((furniture: any) => (
+                  <FurnitureItem key={furniture._id} furniture={furniture} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No furnitures found.</p>
+            )}
+            <Button asChild className="mt-4">
+              <Link href="/furnitures/new">Add New Furniture</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
-};
-
-export default ProfilePage;
+}

@@ -11,13 +11,13 @@ const Footer = () => {
               src="/assets/images/logo.png"
               width={55}
               height={38}
-              alt="Evently logo"
+              alt="EventEase logo"
             />
             <span>EventEase</span>
           </div>
         </Link>
 
-        <p>2024 Evently. All Rights reserved.</p>
+        <p>2024 EventEase. All Rights reserved.</p>
       </div>
     </footer>
   );

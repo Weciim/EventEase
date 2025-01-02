@@ -74,7 +74,9 @@
 }
 
 body {
-  font-family: var(--font-poppins)
+  font-family: var(--font-poppins);
+  cursor: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMCIgZmlsbD0iYmxhY2siLz48L3N2Zz4="),
+    auto;
 }
 
 .filter-grey {
@@ -250,7 +252,7 @@ body {
 .cl-formButtonPrimary:hover,
 .cl-formButtonPrimary:focus,
 .cl-formButtonPrimary:active {
-  background-color: #705CF7
+  background-color: #705cf7;
 }
 
 /* ========================================== REACT-DATEPICKER STYLES */
@@ -274,4 +276,3 @@ body {
 .react-datepicker__time-list-item--selected {
   background-color: #624cf5 !important;
 }
-

@@ -4,8 +4,11 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import NavItems from "./NavItems";
 import MobileNav from "./MobileNav";
-
+import { BaggageClaim } from "lucide-react";
+import { useStateContext } from "@/components/context/CartContext";
+import Cart from "@/components/shared/Cart";
 const Header = () => {
+  const { showCart, setShowCart, totalQuantities } = useStateContext();
   return (
     <header className="w-full border-b">
       <div className="wrapper flex items-center justify-between">
@@ -27,7 +30,18 @@ const Header = () => {
           </nav>
         </SignedIn>
 
-        <div className="flex w-32 justify-end gap-3">
+        <div className="flex w-32 justify-end gap-10">
+          <SignedIn>
+            <button
+              type="button"
+              className="cart-icon"
+              onClick={() => setShowCart(true)}
+            >
+              <BaggageClaim />
+              <span className="cart-item-qty">{totalQuantities}</span>
+            </button>
+            {showCart && <Cart />}{" "}
+          </SignedIn>
           <SignedIn>
             <UserButton afterSignOutUrl="/" />
             <MobileNav />

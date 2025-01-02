@@ -4,8 +4,16 @@ export const headerLinks = [
     route: "/",
   },
   {
+    label: "Packs",
+    route: "/packs",
+  },
+  {
+    label: "Furnitures",
+    route: "/furnitures",
+  },
+  {
     label: "Add Furniture",
-    route: "/events/create",
+    route: "/furnitures/create",
   },
   {
     label: "My Profile",
